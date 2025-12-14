@@ -7,6 +7,8 @@ from flask import redirect, url_for, flash
 now = datetime.now()
 import os
 from flask import session
+from questions import quiz_questions
+import random
 
 app = Flask(__name__)
 app.secret_key = "super-secret-key-123"
@@ -31,12 +33,8 @@ with app.app_context():
     db.create_all()
     print("sucessfully created")
 
-quiz = {
-    "question": "What is the capital of France?",
-    "options": ["Berlin", "Madrid", "Paris", "Rome"],
-    "answer": "Paris"
-}
-
+question_list = quiz_questions
+random.shuffle(quiz_questions)
 
 @app.route("/", methods=["GET", "POST"])
 def home():
@@ -151,6 +149,8 @@ def quiz_page():
     user = User.query.filter_by(user_id=session["user_id"]).first()
     result = None
 
+    i = random.randint(0, len(question_list) - 1)
+    quiz = question_list[i]
     if request.method == "POST":
         selected = request.form.get("option")
         if selected == quiz["answer"]:
