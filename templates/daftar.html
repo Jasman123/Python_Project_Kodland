@@ -1,39 +1,44 @@
 {% extends 'base.html' %}
 
-{% block title %}Home{% endblock %}
+{% block title %}Register{% endblock %}
 
 {% block content %}
-<h2>Welcome Player 🎮</h2>
-<p>Silahkan daftar</p>
+<h2>Selamat Datang di Kuis Edukasi</h2>
+<p>Silakan daftar</p>
 
 <div class="container">
     <h2>Registrasi</h2>
-    <form method="POST" action="/register" id="registerForm">
 
-        <label for="user_id">ID (Username):</label>
-        <input type="text" id="user_id" name="user_id" required>
+    <form method="POST" action="/daftar">
+        <div class="form-group">
+            <label for="user_id">Username</label>
+            <input type="text" id="user_id" name="user_id" required>
+        </div>
 
-        <label for="nama">Nama:</label>
-        <input type="text" id="nama" name="nama" required>
+        <div class="form-group">
+            <label for="nama">Nama Lengkap</label>
+            <input type="text" id="nama" name="nama" required>
+        </div>
 
-        <label for="password">Kata Sandi:</label>
-        <input type="password" id="password" name="password" required>
+        <div class="form-group">
+            <label for="password">Kata Sandi</label>
+            <input type="password" id="password" name="password" required>
+        </div>
 
-        <label for="confirm_password">Konfirmasi Kata Sandi:</label>
-        <input type="password" id="confirm_password" name="confirm_password" required>
+        <div class="form-group">
+            <label for="confirm_password">Konfirmasi Kata Sandi</label>
+            <input type="password" id="confirm_password" name="confirm_password" required>
+        </div>
 
         <button type="submit">Daftar</button>
     </form>
 
-    <div class="message">
-        {% if error %}
-            <p style="color:red">{{ error }}</p>
-        {% endif %}
-        {% if success %}
-            <p style="color:green">{{ success }}</p>
-        {% endif %}
-    </div>
+    {% if error %}
+        <p style="color:red">{{ error }}</p>
+    {% endif %}
+
+    {% if success %}
+        <p style="color:green">{{ success }}</p>
+    {% endif %}
 </div>
-
-
 {% endblock %}

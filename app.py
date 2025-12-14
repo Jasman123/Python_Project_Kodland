@@ -2,16 +2,17 @@ from flask import Flask, render_template, request
 import requests
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
-
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask import redirect, url_for, flash
 now = datetime.now()
+import os
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+app.secret_key = "super-secret-key-123"
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(BASE_DIR, 'users.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
-
-with app.app_context():
-    db.create_all()
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -22,6 +23,10 @@ class User(db.Model):
 
 API_KEY = "0387275c79394f1892c142747251312"
 BASE_URL = "http://api.weatherapi.com/v1"
+
+with app.app_context():
+    db.create_all()
+    print("sucessfully created")
 
 quiz = {
     "question": "What is the capital of France?",
@@ -78,32 +83,59 @@ def home():
 
     return render_template("home.html", cuaca=data_cuaca, today=today)
 
-@app.route("/login")
+from flask import session
+
+@app.route("/login", methods=["GET", "POST"])
 def login():
+    if request.method == "POST":
+        user_id = request.form.get("user_id")
+        password = request.form.get("password")
+
+        user = User.query.filter_by(user_id=user_id).first()
+
+        if user and check_password_hash(user.password, password):
+            # SIMPAN LOGIN KE SESSION
+            session["user_id"] = user.user_id
+            session["nama"] = user.nama
+
+            print("succesffuly login")
+            return redirect(url_for("home"))
+
+        else:
+            return render_template("login.html", error="User ID atau password salah")
+
     return render_template("login.html")
 
-@app.route("/daftar")
+
+@app.route("/daftar", methods=["GET", "POST"])
 def daftar():
-    user_id = request.form.get("user_id")
-    nama = request.form.get("nama")
-    password = request.form.get("password")
-    confirm_password = request.form.get("confirm_password")
+    if request.method == "POST":
+        user_id = request.form.get("user_id")
+        nama = request.form.get("nama")
+        password = request.form.get("password")
+        confirm_password = request.form.get("confirm_password")
 
-    # Simple validation
-    if password != confirm_password:
-        return render_template("daftar.html", error="Kata sandi tidak cocok!")
-    
-    # Check if username already exists
-    existing_user = User.query.filter_by(user_id=user_id).first()
-    if existing_user:
-        return render_template("daftar.html", error="ID sudah terdaftar!")
+        if password != confirm_password:
+            return render_template("daftar.html", error="Password tidak cocok")
 
-    # Save to database
-    new_user = User(user_id=user_id, nama=nama, password=password)
-    db.session.add(new_user)
-    db.session.commit()
+        existing_user = User.query.filter_by(user_id=user_id).first()
+        if existing_user:
+            return render_template("daftar.html", error="User ID sudah terdaftar")
 
-    return render_template("daftar.html", success="Registrasi berhasil! Silahkan login.")
+        hashed_password = generate_password_hash(password)
+
+        new_user = User(
+            user_id=user_id,
+            nama=nama,
+            password=hashed_password
+        )
+        db.session.add(new_user)
+        db.session.commit()
+
+        return redirect(url_for("login"))
+
+    return render_template("daftar.html")
+
 
 
 @app.route("/quiz", methods=["GET", "POST"])
