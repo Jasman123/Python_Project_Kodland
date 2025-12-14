@@ -6,6 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask import redirect, url_for, flash
 now = datetime.now()
 import os
+from flask import session
 
 app = Flask(__name__)
 app.secret_key = "super-secret-key-123"
@@ -20,6 +21,8 @@ class User(db.Model):
     user_id = db.Column(db.String(50), unique=True, nullable=False)
     nama = db.Column(db.String(100), nullable=False)
     password = db.Column(db.String(100), nullable=False)
+    score = db.Column(db.Integer, default=0)
+
 
 API_KEY = "0387275c79394f1892c142747251312"
 BASE_URL = "http://api.weatherapi.com/v1"
@@ -77,14 +80,10 @@ def home():
                 }
             }
 
-            hari = {
-
-            }
+            
 
 
     return render_template("home.html", cuaca=data_cuaca, today=today)
-
-from flask import session
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -149,14 +148,19 @@ def quiz_page():
     if "user_id" not in session:
         return redirect(url_for("login"))
 
-    user_id = session["user_id"]
+    user = User.query.filter_by(user_id=session["user_id"]).first()
     result = None
 
     if request.method == "POST":
         selected = request.form.get("option")
-        result = "Correct! 🎉" if selected == quiz["answer"] else f"Wrong 😢. The correct answer is {quiz['answer']}."
-
-    return render_template("quiz.html", quiz=quiz, result=result, user_id=user_id)
+        if selected == quiz["answer"]:
+            result = "Correct! 🎉"
+            user.score += 10
+        else :
+            result = f"Wrong 😢. The correct answer is {quiz['answer']}."
+        
+    db.session.commit()
+    return render_template("quiz.html", quiz=quiz, result=result, user_id=user, score = user.score )
 
 
 @app.route("/leaderboard")
