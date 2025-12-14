@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Game Login{% endblock %}</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body>
+    <header>
+        {% include 'header.html' %}
+        {% block header %}{% endblock %}
+    </header>
+
+    {% block content %}
+    {% endblock %}
+
+    <footer>
+         {% include 'footer.html' %}
+        {% block footer %}{% endblock %}
+    </footer>
+</body>
+</html>

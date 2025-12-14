@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}Weather{% endblock %}
+
+{% block content %}
+
+
+<form method="POST">
+    <input type="text" name="kota" placeholder="Enter city" required>
+    <button type="submit">Check</button>
+</form>
+
+{% if cuaca %}
+    {% if cuaca.error %}
+        <p style="color:red">{{ cuaca.error }}</p>
+    {% else %}
+
+    <h3>City: {{ cuaca.kota }}</h3>
+
+    <table border="1" cellpadding="8">
+        <tr>
+            <th>Today</th>
+            <th>Tomorrow</th>
+            <th>Day After Tomorrow</th>
+        </tr>
+        <tr>
+            <td>
+                {{ cuaca.today.condition }}
+            </td>
+            <td>
+                {{ cuaca.tomorrow.condition }}
+            </td>
+            <td>
+                {{ cuaca.day_after_tomorrow.condition }}
+            </td>
+        </tr>
+    </table>
+
+    <p>Current Date & Time: {{ today }}</p> 
+
+    <h3>Siang: {{ cuaca.today.max_temp }} °C</h3>
+    <h3>Malam: {{ cuaca.today.min_temp }} °C</h3>
+
+
+
+    {% endif %}
+{% endif %}
+
+{% endblock %}
