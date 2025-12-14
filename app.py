@@ -101,10 +101,16 @@ def login():
             print("succesffuly login")
             return redirect(url_for("home"))
 
+
         else:
             return render_template("login.html", error="User ID atau password salah")
 
     return render_template("login.html")
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("home"))
 
 
 @app.route("/daftar", methods=["GET", "POST"])
@@ -137,14 +143,20 @@ def daftar():
     return render_template("daftar.html")
 
 
-
 @app.route("/quiz", methods=["GET", "POST"])
 def quiz_page():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    user_id = session["user_id"]
     result = None
+
     if request.method == "POST":
         selected = request.form.get("option")
         result = "Correct! 🎉" if selected == quiz["answer"] else f"Wrong 😢. The correct answer is {quiz['answer']}."
-    return render_template("quiz.html", quiz=quiz, result=result)
+
+    return render_template("quiz.html", quiz=quiz, result=result, user_id=user_id)
+
 
 @app.route("/leaderboard")
 def leaderboard():
