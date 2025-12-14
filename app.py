@@ -37,6 +37,7 @@ quiz = {
 
 @app.route("/", methods=["GET", "POST"])
 def home():
+    session.clear()
     data_cuaca = None
     now = datetime.now()
     today = now.strftime("%A, %d %B %Y %H:%M:%S")
@@ -99,7 +100,7 @@ def login():
             session["nama"] = user.nama
 
             print("succesffuly login")
-            return redirect(url_for("home"))
+            return redirect(url_for("quiz_page"))
 
 
         else:

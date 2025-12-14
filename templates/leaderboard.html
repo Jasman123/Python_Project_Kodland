@@ -5,7 +5,7 @@
 {% block content %}
 <h2>🏆 Leaderboard</h2>
 
-<table border="1" cellpadding="10" cellspacing="0">
+<table border="1" cellpadding="8" style="margin: auto; text-align: center;">
     <thead>
         <tr>
             <th>Rank</th>
@@ -30,5 +30,5 @@
     </tbody>
 </table>
 
-<a href="{{ url_for('home') }}">⬅ Back to Home</a>
+<a href="{{ url_for('quiz_page') }}">⬅ Back to Quiz</a>
 {% endblock %}
