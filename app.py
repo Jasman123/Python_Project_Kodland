@@ -29,14 +29,17 @@ class User(db.Model):
 API_KEY = "0387275c79394f1892c142747251312"
 BASE_URL = "http://api.weatherapi.com/v1"
 
+
+
 with app.app_context():
     db.create_all()
     print("sucessfully created")
 
 question_list = quiz_questions
 random.shuffle(quiz_questions)
+answered_question = 0
 
-sum_quesntion = 0
+
 
 @app.route("/", methods=["GET", "POST"])
 def home():
@@ -94,7 +97,6 @@ def login():
         user = User.query.filter_by(user_id=user_id).first()
 
         if user and check_password_hash(user.password, password):
-            # SIMPAN LOGIN KE SESSION
             session["user_id"] = user.user_id
             session["nama"] = user.nama
 
@@ -109,8 +111,14 @@ def login():
 
 @app.route("/logout")
 def logout():
+    if "user_id" in session:
+        user = User.query.filter_by(user_id=session["user_id"]).first()
+        user.score = 0
+        db.session.commit()
+
     session.clear()
     return redirect(url_for("home"))
+
 
 
 @app.route("/daftar", methods=["GET", "POST"])
@@ -151,31 +159,47 @@ def quiz_page():
     user = User.query.filter_by(user_id=session["user_id"]).first()
     result = None
 
-    i = random.randint(0, len(question_list) - 1)
-    quiz = question_list[i]
+    if "quiz_index" not in session:
+        session["quiz_index"] = random.randint(0, len(question_list) - 1)
+
+    quiz = question_list[session["quiz_index"]]
+
     if request.method == "POST":
         selected = request.form.get("option")
+
         if selected == quiz["answer"]:
             result = "Correct! 🎉"
             user.score += 10
-        else :
+        else:
             result = f"Wrong 😢. The correct answer is {quiz['answer']}."
-        
-    db.session.commit()
-    return render_template("quiz.html", quiz=quiz, result=result, user_id=user, score = user.score )
+
+        session["quiz_index"] = random.randint(0, len(question_list) - 1)
+        db.session.commit()
+
+    return render_template(
+        "quiz.html",
+        quiz=quiz,
+        result=result,
+        user=user,
+        score=user.score
+    )
+
 
 
 @app.route("/leaderboard")
 def leaderboard():
     if "user_id" not in session:
         return redirect(url_for("login"))
-    user = User.query.filter_by(user_id=session["user_id"]).first()
 
+    users = User.query.order_by(User.score.desc()).all()
 
     leaderboard_data = [
-        {"name": user.user_id , "score": user.score},
+        {"name": u.user_id, "score": u.score}
+        for u in users
     ]
+
     return render_template("leaderboard.html", leaderboard=leaderboard_data)
+
 
 
 
