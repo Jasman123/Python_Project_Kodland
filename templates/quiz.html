@@ -1,24 +1,37 @@
 {% extends 'base.html' %}
 
-{% block title %}Home{% endblock %}
+{% block title %}Quiz{% endblock %}
 
 {% block content %}
 <h2>Welcome Player 🎮</h2>
 <p>Try this quiz!</p>
 
+<h3>Score: {{ score }}</h3>  
+
 <form method="POST">
     <p><strong>{{ quiz.question }}</strong></p>
+
     {% for option in quiz.options %}
         <div>
-            <input type="radio" id="{{ option }}" name="option" value="{{ option }}" required>
+            <input type="radio"
+                   id="{{ option }}"
+                   name="option"
+                   value="{{ option }}"
+                   required>
             <label for="{{ option }}">{{ option }}</label>
         </div>
     {% endfor %}
+
     <br>
     <button type="submit">Submit</button>
 </form>
 
 {% if result %}
     <h3>{{ result }}</h3>
+    <h3>Score: {{ user.score }}</h3>
+    <p>Question {{ user.answered }} / {{ max_q }}</p>
+    <p>Correct: {{ user.correct }}</p>
+
 {% endif %}
+
 {% endblock %}
