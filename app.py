@@ -36,6 +36,8 @@ with app.app_context():
 question_list = quiz_questions
 random.shuffle(quiz_questions)
 
+sum_quesntion = 0
+
 @app.route("/", methods=["GET", "POST"])
 def home():
     session.clear()
@@ -165,10 +167,13 @@ def quiz_page():
 
 @app.route("/leaderboard")
 def leaderboard():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    user = User.query.filter_by(user_id=session["user_id"]).first()
+
+
     leaderboard_data = [
-        {"name": "Alice", "score": 150},
-        {"name": "Bob", "score": 120},
-        {"name": "Charlie", "score": 100},
+        {"name": user.user_id , "score": user.score},
     ]
     return render_template("leaderboard.html", leaderboard=leaderboard_data)
 
