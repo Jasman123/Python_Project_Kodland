@@ -6,7 +6,6 @@
 <h2>Welcome Player 🎮</h2>
 <p>Try this quiz!</p>
 
-<h3>Score: {{ score }}</h3>  
 
 <form method="POST">
     <p><strong>{{ quiz.question }}</strong></p>
@@ -28,9 +27,9 @@
 
 {% if result %}
     <h3>{{ result }}</h3>
-    <h3>Score: {{ user.score }}</h3>
-    <p>Question {{ user.answered }} / {{ max_q }}</p>
-    <p>Correct: {{ user.correct }}</p>
+    <h3>Score: {{ user.quiz_score }}</h3>
+    <p>Question {{ user.quiz_answered }} / {{ max_q }}</p>
+    <p>Correct: {{ user.quiz_correct }}</p>
 
 {% endif %}
 
