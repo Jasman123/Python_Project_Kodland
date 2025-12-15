@@ -28,6 +28,10 @@
 
 {% if result %}
     <h3>{{ result }}</h3>
+    <h3>Score: {{ user.score }}</h3>
+    <p>Question {{ user.answered }} / {{ max_q }}</p>
+    <p>Correct: {{ user.correct }}</p>
+
 {% endif %}
 
 {% endblock %}

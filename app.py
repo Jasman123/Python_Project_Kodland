@@ -1,21 +1,22 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect, url_for, session
 import requests
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask import redirect, url_for, flash
-now = datetime.now()
 import os
-from flask import session
-from questions import quiz_questions
 import random
+from questions import quiz_questions
 
 app = Flask(__name__)
 app.secret_key = "super-secret-key-123"
+
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(BASE_DIR, 'users.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+
+MAX_QUESTIONS = 10
+
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -23,21 +24,29 @@ class User(db.Model):
     user_id = db.Column(db.String(50), unique=True, nullable=False)
     nama = db.Column(db.String(100), nullable=False)
     password = db.Column(db.String(100), nullable=False)
-    score = db.Column(db.Integer, default=0)
+
+    # Quiz session
+    quiz_score = db.Column(db.Integer, default=0)
+    quiz_answered = db.Column(db.Integer, default=0)
+    quiz_correct = db.Column(db.Integer, default=0)
+
+    # Leaderboard cumulative
+    total_score = db.Column(db.Integer, default=0)
 
 
-API_KEY = "0387275c79394f1892c142747251312"
-BASE_URL = "http://api.weatherapi.com/v1"
 
+def init_quiz():
+    questions = quiz_questions.copy()
+    random.shuffle(questions)
+    session["remaining_questions"] = questions[:MAX_QUESTIONS]
+    session["current_question"] = None
 
-
-with app.app_context():
-    db.create_all()
-    print("sucessfully created")
-
-question_list = quiz_questions
-random.shuffle(quiz_questions)
-answered_question = 0
+def get_next_question():
+    if not session.get("remaining_questions"):
+        return None
+    question = session["remaining_questions"].pop(0)
+    session["current_question"] = question
+    return question
 
 
 
@@ -50,21 +59,18 @@ def home():
 
     if request.method == "POST":
         kota = request.form.get("kota")
+        API_KEY = "0387275c79394f1892c142747251312"
+        BASE_URL = "http://api.weatherapi.com/v1"
 
         response = requests.get(
             f"{BASE_URL}/forecast.json",
-            params={
-                "key": API_KEY,
-                "q": kota,
-                "days": 3
-            }
+            params={"key": API_KEY, "q": kota, "days": 3}
         ).json()
 
         if "error" in response:
             data_cuaca = {"error": response["error"]["message"]}
         else:
             forecast = response["forecast"]["forecastday"]
-
             data_cuaca = {
                 "kota": kota,
                 "today": {
@@ -83,10 +89,9 @@ def home():
                 }
             }
 
-            
-
-
     return render_template("home.html", cuaca=data_cuaca, today=today)
+
+
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -95,27 +100,27 @@ def login():
         password = request.form.get("password")
 
         user = User.query.filter_by(user_id=user_id).first()
-
         if user and check_password_hash(user.password, password):
             session["user_id"] = user.user_id
             session["nama"] = user.nama
 
-            print("succesffuly login")
+            # Reset quiz session only
+            session.pop("remaining_questions", None)
+            session.pop("current_question", None)
+            user.quiz_score = 0
+            user.quiz_answered = 0
+            user.quiz_correct = 0
+            db.session.commit()
+
             return redirect(url_for("quiz_page"))
-
-
         else:
             return render_template("login.html", error="User ID atau password salah")
-
     return render_template("login.html")
+
+
 
 @app.route("/logout")
 def logout():
-    if "user_id" in session:
-        user = User.query.filter_by(user_id=session["user_id"]).first()
-        user.score = 0
-        db.session.commit()
-
     session.clear()
     return redirect(url_for("home"))
 
@@ -137,17 +142,11 @@ def daftar():
             return render_template("daftar.html", error="User ID sudah terdaftar")
 
         hashed_password = generate_password_hash(password)
-
-        new_user = User(
-            user_id=user_id,
-            nama=nama,
-            password=hashed_password
-        )
+        new_user = User(user_id=user_id, nama=nama, password=hashed_password)
         db.session.add(new_user)
         db.session.commit()
 
         return redirect(url_for("login"))
-
     return render_template("daftar.html")
 
 
@@ -159,29 +158,51 @@ def quiz_page():
     user = User.query.filter_by(user_id=session["user_id"]).first()
     result = None
 
-    if "quiz_index" not in session:
-        session["quiz_index"] = random.randint(0, len(question_list) - 1)
-
-    quiz = question_list[session["quiz_index"]]
+    if "remaining_questions" not in session:
+        init_quiz()
 
     if request.method == "POST":
         selected = request.form.get("option")
+        quiz = session.get("current_question")
 
-        if selected == quiz["answer"]:
-            result = "Correct! 🎉"
-            user.score += 10
-        else:
-            result = f"Wrong 😢. The correct answer is {quiz['answer']}."
+        if quiz:
+            user.quiz_answered += 1
 
-        session["quiz_index"] = random.randint(0, len(question_list) - 1)
-        db.session.commit()
+            if selected == quiz["answer"]:
+                user.quiz_correct += 1
+                user.quiz_score += 10
+                
+                result = "Correct! 🎉"
+            else:
+                result = f"Wrong 😢. Jawaban benar: {quiz['answer']}"
+            user.total_score = user.quiz_score
+            db.session.commit()
+
+    quiz = get_next_question()
+    if quiz is None or user.quiz_answered >= MAX_QUESTIONS:
+        return redirect(url_for("result"))
 
     return render_template(
         "quiz.html",
         quiz=quiz,
         result=result,
         user=user,
-        score=user.score
+        max_q=MAX_QUESTIONS
+    )
+
+
+@app.route("/result")
+def result():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    user = User.query.filter_by(user_id=session["user_id"]).first()
+    percentage = (user.quiz_correct / user.quiz_answered * 100) if user.quiz_answered > 0 else 0
+
+    return render_template(
+        "result.html",
+        user=user,
+        percentage=percentage
     )
 
 
@@ -191,17 +212,14 @@ def leaderboard():
     if "user_id" not in session:
         return redirect(url_for("login"))
 
-    users = User.query.order_by(User.score.desc()).all()
-
-    leaderboard_data = [
-        {"name": u.user_id, "score": u.score}
-        for u in users
-    ]
+    users = User.query.order_by(User.total_score.desc()).all()
+    leaderboard_data = [{"name": u.user_id, "score": u.total_score} for u in users]
 
     return render_template("leaderboard.html", leaderboard=leaderboard_data)
 
 
 
-
 if __name__ == "__main__":
+    with app.app_context():
+        db.create_all()
     app.run(debug=True)

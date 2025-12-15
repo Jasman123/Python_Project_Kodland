@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}Result{% endblock %}
+
+{% block content %}
+<h2>Quiz Finished 🎉</h2>
+<p>Here is your result</p>
+
+<h3>Score: {{ user.score }}</h3>
+
+<p><strong>Name:</strong> {{ user.nama }}</p>
+<p><strong>Total Questions:</strong> {{ user.answered }}</p>
+<p><strong>Correct Answers:</strong> {{ user.correct }}</p>
+<p><strong>Accuracy:</strong> {{ percentage | round(2) }}%</p>
+
+<br>
+
+<a href="{{ url_for('leaderboard') }}">
+    <button type="button">View Leaderboard 🏆</button>
+</a>
+
+
+{% endblock %}
